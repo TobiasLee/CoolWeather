@@ -2,9 +2,12 @@ package top.tobiaslee.coolweather;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -73,11 +76,14 @@ public class ChooseAreaFragment extends Fragment {
         listView.setAdapter(adapter);
         return view;
     }
+    private static final String TAG = "WeatherFragment";
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        listView.setOnItemClickListener((parent, view ,position ,id)->{
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+
+        listView.setOnItemClickListener((parent, view, position, id)->{
             if(currentLevel == LEVEL_PROVINCE) {
                 selectedProvince = provinceList.get(position);
                 queryCities();
@@ -92,10 +98,18 @@ public class ChooseAreaFragment extends Fragment {
                     startActivity(intent);
                     getActivity().finish();
                 } else if (getActivity() instanceof WeatherActivity) {
+                    if(weatherId != prefs.getString("weather_id", null)) {
+                        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getActivity())
+                                .edit();
+                        Log.d(TAG, "edited");
+                        editor.putString("weather_id", weatherId);
+                        editor.apply();
+                    }
                     WeatherActivity activity = (WeatherActivity) getActivity();
                     activity.drawerLayout.closeDrawers();
                     activity.swipeRefresh.setRefreshing(true);
                     activity.requestWeather(weatherId);
+                    Log.d(TAG, weatherId);
                 }
             }
         });

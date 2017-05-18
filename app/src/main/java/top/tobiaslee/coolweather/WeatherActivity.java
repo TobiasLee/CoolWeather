@@ -59,7 +59,7 @@ public class WeatherActivity extends AppCompatActivity {
     public DrawerLayout drawerLayout;
     private Button navButton;
 
-
+    private static final String TAG = "RaleeWeather";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -87,6 +87,7 @@ public class WeatherActivity extends AppCompatActivity {
         bingPicImg = (ImageView) findViewById(R.id.bing_pic_img);
         swipeRefresh = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
         swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
+
         navButton = (Button) findViewById(R.id.nav_button);
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         navButton.setOnClickListener((v)->{
@@ -109,14 +110,26 @@ public class WeatherActivity extends AppCompatActivity {
             weatherId = weather.basic.weatherId;
             Log.d("weather id",  weather.basic.weatherId);
             showWeatherInfo(weather);
+            Log.d(TAG, weatherId);
+
         } else {
             weatherId = getIntent().getStringExtra("weather_id");
             weatherLayout.setVisibility(View.INVISIBLE);
             requestWeather(weatherId);
+            Log.d(TAG, weatherId);
+
         }
 
         swipeRefresh.setOnRefreshListener(()->{
-            requestWeather(weatherId);
+            String newId = prefs.getString("weather_id", null);
+            if(newId != weatherId){
+                // 解决下拉刷新回到缓存的bug
+                requestWeather(newId);
+                Log.d(TAG, "new: " + newId);
+            } else {
+                requestWeather(weatherId);
+            }
+            Log.d(TAG, weatherId);
         });
     }
 
@@ -165,6 +178,7 @@ public class WeatherActivity extends AppCompatActivity {
                         SharedPreferences.Editor editor = PreferenceManager.
                                 getDefaultSharedPreferences(WeatherActivity.this).edit();
                         editor.putString("weather", responseText);
+                        editor.putString("weather_id", weather.basic.weatherId);
                         editor.apply();
                         showWeatherInfo(weather);
                     } else {
@@ -209,15 +223,12 @@ public class WeatherActivity extends AppCompatActivity {
                 TextView minText = (TextView) view.findViewById(R.id.min_text);
 
                 dateText.setText(forecast.date);
-                Log.d("Forecast", "showWeatherInfo: date" + forecast.date);
                 infoText.setText(forecast.more.info);
 
-                Log.d("Forecast", "showWeatherInfo: date" + forecast.more.info);
-                maxText.setText(forecast.temperature.max);
-                minText.setText(forecast.temperature.min);
+                maxText.setText(forecast.temperature.max + "°C");
+                minText.setText(forecast.temperature.min + "°C");
                 forecastLayout.addView(view);
 
-                Log.d("Forecast", "showWeatherInfo: " + " addView" + cnt);
                 cnt++;
             }
             if(weather.aqi != null ) {
