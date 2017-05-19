@@ -60,6 +60,7 @@ public class WeatherActivity extends AppCompatActivity {
     private Button navButton;
 
     private static final String TAG = "RaleeWeather";
+    private static final String CELSIUS = "\u2103";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -122,14 +123,19 @@ public class WeatherActivity extends AppCompatActivity {
 
         swipeRefresh.setOnRefreshListener(()->{
             String newId = prefs.getString("weather_id", null);
-            if(newId != weatherId){
-                // 解决下拉刷新回到缓存的bug
-                requestWeather(newId);
-                Log.d(TAG, "new: " + newId);
+            // 更新后如果没有选择过城市 weather_id是null 就会报错
+            if(newId != null) {
+                if(newId != weatherId){
+                    // 解决下拉刷新回到缓存的bug
+                    requestWeather(newId);
+                    Log.d(TAG, "new: " + newId);
+                } else {
+                    requestWeather(weatherId);
+                }
             } else {
                 requestWeather(weatherId);
             }
-            Log.d(TAG, weatherId);
+
         });
     }
 
@@ -164,7 +170,6 @@ public class WeatherActivity extends AppCompatActivity {
                 runOnUiThread(()-> {
                     Toast.makeText(WeatherActivity.this, "获取天气失败", Toast.LENGTH_SHORT).show();
                     swipeRefresh.setRefreshing(false);
-
                 });
             }
 
@@ -178,6 +183,7 @@ public class WeatherActivity extends AppCompatActivity {
                         SharedPreferences.Editor editor = PreferenceManager.
                                 getDefaultSharedPreferences(WeatherActivity.this).edit();
                         editor.putString("weather", responseText);
+                        Log.d(TAG, "weather_id" + weather.basic.weatherId);
                         editor.putString("weather_id", weather.basic.weatherId);
                         editor.apply();
                         showWeatherInfo(weather);
@@ -202,7 +208,7 @@ public class WeatherActivity extends AppCompatActivity {
             startService(intent);
             String cityName = weather.basic.cityName;
             String updateTime = weather.basic.update.updateTime.split(" ")[1];
-            String degree = weather.now.temperature;
+            String degree = weather.now.temperature + " " +CELSIUS;
             String weatherInfo = weather.now.more.info;
 
             titleCity.setText(cityName);
@@ -211,7 +217,6 @@ public class WeatherActivity extends AppCompatActivity {
             weatherInfoText.setText(weatherInfo);
 
             forecastLayout.removeAllViews();
-            int cnt = 1;
             for (Forecast forecast:
                     weather.forecastList) {
                 Log.d("Forecast", "showWeatherInfo: ");
@@ -224,16 +229,24 @@ public class WeatherActivity extends AppCompatActivity {
 
                 dateText.setText(forecast.date);
                 infoText.setText(forecast.more.info);
-
-                maxText.setText(forecast.temperature.max + "°C");
-                minText.setText(forecast.temperature.min + "°C");
+                String max = forecast.temperature.max + " " + CELSIUS;
+                String min = forecast.temperature.min + " " + CELSIUS;
+                maxText.setText(max);
+                minText.setText(min);
                 forecastLayout.addView(view);
-
-                cnt++;
             }
             if(weather.aqi != null ) {
+                aqiText.setTextSize(40);
+                pm25Text.setTextSize(40);
                 aqiText.setText(weather.aqi.city.aqi);
                 pm25Text.setText(weather.aqi.city.pm25);
+            } else {
+                aqiText.setTextSize(20);
+                pm25Text.setTextSize(20);
+                aqiText.setText("暂未获取");
+                pm25Text.setText("暂未获取");
+
+                Log.d(TAG, "showWeatherInfo:  no aqi");
             }
             String comfort = "舒适度: " + weather.suggestion.comfort.info;
             String carWash = "洗车指数: " + weather.suggestion.carWash.info;
